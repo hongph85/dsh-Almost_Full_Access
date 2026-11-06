@@ -692,6 +692,20 @@ const applyPatch = (t) => ensureInsertBlock(ensurePermissionBlock(replacePermiss
 	check("首块场景仍幂等", applyPatch(out) === out);
 }
 
+// ============ 16. Issue 2: 记忆按会话作用域 ============
+console.log("");
+console.log("[16] Issue 2：记忆按会话作用域");
+console.log("  -- Issue 2：remembered 记忆按会话作用域（session id + workspaceRoot + commandHash）");
+{
+	const idx = readFileSync(join(root, "lib/index.js"), "utf8");
+	check("remembered.get 不再直接以 commandHash 为键", !idx.includes("remembered.get(rec.commandHash)"));
+	check("remembered.set 不再直接以 commandHash 为键", !idx.includes("remembered.set(rec.commandHash"));
+	check("存在 memoryKey 复合键 helper", /function memoryKey\(rec\)/.test(idx));
+	check("memoryKey 组合 session id + workspaceRoot + commandHash", idx.includes("sessionIdOf(rec.agent)") && idx.includes("rec.workspaceRoot") && idx.includes("rec.commandHash"));
+	check("sessionIdOf 优先取 session.id、回退 agent.id", /function sessionIdOf\(agent\)/.test(idx) && idx.includes("session.id") && idx.includes("agent.id"));
+	check("记忆读取/写入均经 memoryKey 且判空", idx.includes("const key = memoryKey(rec)") && idx.includes("if (key !== null)"));
+}
+
 // ============ 汇总 ============
 console.log(`\n========================================`);
 console.log(`结果：${passed} 通过 / ${failed} 失败`);
